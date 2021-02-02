@@ -8,6 +8,7 @@ public class Main {
     private static Client client;
     private static Server server;
     public static void main(String[] args){
+
         if(inter.hostAvailabilityCheck(2404) == true) {
             server = inter.CreateServer(2404);
         }
@@ -16,5 +17,12 @@ public class Main {
             client = inter.joinServer("localhost", 2404);
             System.out.println("starting client on server");
         }
+        while(true){
+            loop();
+        }
+    }
+
+    public static void loop(){
+
     }
 }

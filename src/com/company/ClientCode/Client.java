@@ -1,11 +1,14 @@
 package com.company.ClientCode;
 
+import com.company.ServerCode.Server;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class Client {
+
     private DatagramSocket socket;
 
     public String getMessage() {
@@ -20,6 +23,7 @@ public class Client {
 
     private InetAddress serverAddress;
     private int port;
+    private boolean online;
     private String lastMessage;
     private int clientID;
     public Client(String address, int port){
@@ -27,7 +31,8 @@ public class Client {
             this.serverAddress = InetAddress.getByName(address);
             this.port = port;
             this.socket = new DatagramSocket();
-
+            this.online = true;
+            Send("\\c");
             recieve();
         }
         catch (Exception e){
@@ -35,23 +40,25 @@ public class Client {
         }
     }
     public void recieve(){
-        Thread thread = new Thread(){
+        Thread thread = new Thread() {
             public void run() {
-                try {
-                    byte[] rawData = new byte[1024];
-                    DatagramPacket packet = new DatagramPacket(rawData, rawData.length);
-                    socket.receive(packet);
+        while (online) {
+            try {
+                byte[] rawData = new byte[1024];
+                DatagramPacket packet = new DatagramPacket(rawData, rawData.length);
+                socket.receive(packet);
 
-                    String message = new String(rawData);
-                    message = message.substring(0, message.indexOf("\\e"));
-                    if (!parseCommand(message)) {
-                        lastMessage = message;
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                String message = new String(rawData);
+                message = message.substring(0, message.indexOf("\\e"));
+                if (!parseCommand(message)) {
+                    lastMessage = message;
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }; thread.run();
+        }
+            }
+        }; thread.start();
     }
     public  boolean parseCommand(String message){
         if(message.startsWith("\\cid:")){
@@ -60,11 +67,11 @@ public class Client {
         }
         return false;
     }
-    public void Send(String message, ClientObject client){
+    public void Send(String message){
         try {
             message = message + "\\e";
             byte[] data = message.getBytes();
-            DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(client.getAddress().toString()), client.getPort());
+            DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, port);
             socket.send(packet);
         }
         catch(Exception e){

@@ -48,24 +48,30 @@ public class Server {
             e.printStackTrace();
         }
     }
-    public void recieve(){
-                try{
-                    System.out.println(clients.size());
-                    byte[] rawData = new byte[1024];
-                    DatagramPacket packet = new DatagramPacket(rawData, rawData.length);
-                    socket.receive(packet);
+    public void recieve() {
+        Thread thread = new Thread() {
+            public void run() {
+                while (online) {
+                    try {
+                        byte[] rawData = new byte[1024];
+                        DatagramPacket packet = new DatagramPacket(rawData, rawData.length);
+                        socket.receive(packet);
 
-                    String message = new String(rawData);
-                    message = message.substring(0, message.indexOf("\\e"));
-                    if (!parseCommand(message, packet)) {
-                        lastMessage = message;
+                        String message = new String(rawData);
+                        message = message.substring(0, message.indexOf("\\e"));
+                        if (!parseCommand(message, packet)) {
+                            lastMessage = message;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
+        }; thread.start();
+    }
     public void Send(String message, ClientObject client){
         try {
+            System.out.println(clients.size());
             message = message + "\\e";
             byte[] data = message.getBytes();
             DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(client.getAddress()), client.getPort());
@@ -76,13 +82,17 @@ public class Server {
         }
     }
     public void updateClients(String message){
+        System.out.println(message);
         for(int i = 0; i < clients.size(); i++){
             Send(message, clients.get(i));
         }
     }
     public  boolean parseCommand(String message, DatagramPacket packet){
+        System.out.println(clients.size());
         if(message.startsWith("\\c")){
-            ClientObject client = new ClientObject(packet.getAddress().toString(), packet.getPort(), clientID+1);
+
+            ClientObject client = new ClientObject(packet.getAddress().getHostAddress(), packet.getPort(), clientID+1);
+            client.setServer(this);
             clients.add(client);
             Send("\\cid:" + client.getId(), client);
             clientID++;
@@ -96,8 +106,9 @@ public class Server {
                     return true;
                 }
             }
-            System.out.println("Server was unable to find client: "+id);
+            System.out.println(clients.size());
         }
+
         return false;
     }
 }
